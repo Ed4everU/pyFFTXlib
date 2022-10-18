@@ -1,5 +1,3 @@
-from cgitb import small
-from termios import N_STRIP
 import numpy as np
 from .fft_param import fft_param
 
