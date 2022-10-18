@@ -1,44 +1,26 @@
+from cgitb import small
+from termios import N_STRIP
 import numpy as np
 from .fft_param import fft_param
 
 
 class sticks_map:
 
-
-    #
-    # if .true. the map has gamma symmetry
-    #
-    lgamma:bool = False
-    #
-    # if .true. the map is set for parallel and serial, 
-    # if .false. only serial 
-    #
-    lpara:bool = False  
-    #
-    # my task id (starting from 0)
-    #  
-    mype:int = 0
-    #
-    # number of task (as nproc in fft_type_descriptor)
-    #
-    nproc:int = 1
-    #
-    # number processors in y-direction 
-    # (as nproc2 in fft_type_descriptor)
-    #
-    nyfft:int = 1
-    #
-    # a safe maximum number of sticks on the map
-    #
-    nstx:int = 0
-    #
-    # map's lower bounds
-    #
-    lb = np.zeros(3,dtype=np.int64)
-    #
-    # map's upper bounds
-    # 
-    ub = np.zeros(3,dtype=np.int64)
+    lgamma:bool = False                # if .true. the map has gamma symmetry
+    lpara:bool = False                 # if .true. the map is set for parallel and serial, if .false. only serial 
+    mype:int = 0                       # my task id (starting from 0)
+    nproc:int = 1                      # number of task (as nproc in fft_type_descriptor)
+    nyfft:int = 1                      # number processors in y-direction as nproc2 in fft_type_descriptor)
+    nstx:int = 0                       # a safe maximum number of sticks on the map
+    lb = np.zeros(3,dtype=np.int64)    # map's lower bounds
+    ub = np.zeros(3,dtype=np.int64)    # map's upper bounds
+    idx:np.ndarray                     # the index of each stick
+    ist:np.ndarray                     # the cartesian coordinates of each stick
+    stown:np.ndarray                   # the owner of each stick
+    indmap:np.ndarray                  # the index of each stick (represented on the map)
+    bg=np.zeros((3,3),dtype=np.int64)  # base vectors, the generators of the mapped space
+    iproc:np.ndarray                   # the processor index (as in fft_type_descriptor)
+    iproc2:np.ndarray                  # the Y group processor index (as in fft_type_descriptor)
 
     try:
         from mpi4py import MPI
@@ -46,24 +28,47 @@ class sticks_map:
         HAVE_MPI = True
     except:
         HAVE_MPI = False
+        comm = None
 
-    @staticmethod
-    def hpsort(n, ra, ind):
-        # sort an array ra(1:n) into ascending order using heapsort algorithm.
-        # n is input, ra is replaced on output by its sorted rearrangement.
-        # create an index table (ind) by making an exchange in the index array
-        # whenever an exchange is made on the sorted data array (ra).
-        # in case of equal values in the data array (ra) the values in the
-        # index array (ind) are used to order the entries.
-        # if on input ind(1)  = 0 then indices are initialized in the routine,
-        # if on input ind(1) #= 0 then indices are assumed to have been
-        #                initialized before entering the routine and these
-        #                indices are carried around during the sorting process
-        #
-        # no work space needed #
-        # free us from machine-dependent sorting-routines #
-        #
-        # adapted from Numerical Recipes pg. 329 (new edition)
-        #
+    def __init__(self, lgamma, lpara, nyfft, iproc, iproc2, nr1, nr2, nr3, bg, comm):
+        """
+        equivalent to `sticks_map_allocate` part when self.nstx == 0
+        """
+        ub = np.zeros(3,dtype=np.int64)
 
-        pass
+        ub[0] = (nr1-1)/2
+        ub[1] = (nr2-1)/2
+        ub[2] = (nr3-1)/2
+        lb = -1*self.ub
+        nstx = (self.ub[0]-self.lb[1]+1)*(self.ub[1]-self.lb[1]+1)
+
+        # if self.nstx == 0:
+        #     # this map is clean, allocate
+        #     #
+        self.mype = 0
+        self.nproc = 1
+        self.comm = comm
+        #
+        if self.HAVE_MPI:
+            self.mype = self.comm.Get_rank()
+            self.nproc = self.comm.Get_size()
+        #
+        self.nstx = nstx
+        self.lgamma = lgamma
+        self.lpara = lpara
+        self.nyfft = nyfft
+        self.iproc = iproc
+        self.iproc2 = iproc2
+        self.ub = ub
+        self.lb = lb
+        self.bg = bg
+        nzfft = self.nproc / nyfft
+        # self.iproc = np.zeros((nyfft, nzfft))
+        # self.iproc2 = np.zeros((self.nproc))
+        self.iproc = iproc
+        self.iproc2 = iproc2
+
+        self.indmap = np.zeros((self.ub[0]))
+
+    def update(self):
+        self.__init__()
