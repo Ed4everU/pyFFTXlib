@@ -107,8 +107,8 @@ class fft_type_descriptor:
     #
     # INTEGER, POINTER DEV_ATTRIBUTES :: ismap_d(:)
     #
-    nl:np.ndarray
-    nlm:np.ndarray
+    nl:np.ndarray       # np.int64
+    nlm:np.ndarray      # np.int64
     #
     # INTEGER, POINTER DEV_ATTRIBUTES :: ismap_d(:)
     # INTEGER, POINTER DEV_ATTRIBUTES :: nlm_d(:)
