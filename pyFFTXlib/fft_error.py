@@ -4,7 +4,9 @@ from .fft_param import fft_param
 try:
     from mpi4py import MPI
 
-    def fftx_error_mpi__( 
+    HAVE_MPI = True
+
+    def fftx_error__( 
         calling_routine:str, 
         message:str, 
         ierr:int, 
